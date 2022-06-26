@@ -1,4 +1,3 @@
-using Certificate.Checker;
 using Certificate.Checker.Interfaces;
 using Certificate.Checker.Models;
 using Certificate.Checker.Results;
@@ -6,13 +5,10 @@ using Microsoft.AspNetCore.Mvc;
 
 var builder = WebApplication.CreateBuilder(args);
 
+builder.AddPathBase();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
-builder.Services.AddMemoryCache();
-builder.Services.AddSingleton<ICertificateStore, CertificateStore>();
-builder.Services.AddSingleton<CertificateExtractionHandler>();
-builder.Services.AddHttpClient<ICertificateCheckerService, CertificateCheckerService>()
-                .ConfigurePrimaryHttpMessageHandler((serviceProvider) => serviceProvider.GetRequiredService<CertificateExtractionHandler>());
+builder.Services.AddCertificateChecker();
 
 var app = builder.Build();
 
@@ -23,19 +19,42 @@ app.UseHttpsRedirection();
 
 app.MapPost("/check", async ([FromBody] CheckRequest request, ICertificateCheckerService checker) =>
 {
+    if (!IsValidUri(request.Uri))
+    {
+        return Results.BadRequest("Invalid Uri");
+    }
     var response = await checker.CheckAsync(request.Uri);
-    return response;
+    return Results.Ok(response);
 })
 .WithName("Check")
-.Produces<CheckResponse>(200);
+.Produces<CheckResponse>(200)
+.ProducesValidationProblem();
 
 app.MapGet("/validate", async (string requestUri, ICertificateCheckerService checker) =>
 {
+    if (!IsValidUri(requestUri))
+    {
+        return Results.BadRequest("Invalid Uri");
+    }
     var response = await checker.CheckAsync(requestUri);
     return new CheckResult(response);
 })
 .WithName("Validate")
 .Produces<CheckResponse>(200)
+.ProducesValidationProblem()
 .ProducesProblem(502);
 
 app.Run();
+
+bool IsValidUri(string uri)
+{
+    try
+    {
+        _ = new Uri(uri);
+        return true;
+    }
+    catch
+    {
+        return false;
+    }
+}
