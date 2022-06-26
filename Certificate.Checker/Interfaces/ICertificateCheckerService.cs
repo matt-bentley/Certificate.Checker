@@ -4,6 +4,6 @@ namespace Certificate.Checker.Interfaces
 {
     public interface ICertificateCheckerService
     {
-        Task<CheckResponse> CheckAsync(string checkUri);
+        ValueTask<CheckResponse> CheckAsync(string checkUri);
     }
 }

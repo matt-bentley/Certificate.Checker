@@ -18,7 +18,7 @@ namespace Certificate.Checker
             _logger = logger;
         }
 
-        public async Task<CheckResponse> CheckAsync(string checkUri)
+        public async ValueTask<CheckResponse> CheckAsync(string checkUri)
         {
             _logger.LogInformation("Checking for {requestUri}", checkUri);
             var tlsCertificate = _certificateStore.Find(checkUri);
